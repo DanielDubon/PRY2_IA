@@ -1,5 +1,6 @@
 from collections import deque
 from typing import List, Tuple, Dict, Callable
+import heapq
 
 
 def bfs(
@@ -7,49 +8,25 @@ def bfs(
     start: Tuple[int, int],
     goal: Tuple[int, int]
 ) -> Tuple[List[Tuple[int, int]], int]:
-    """
-    Breadth-First Search en un grid binario.
-
-    Args:
-        grid: matriz 2D donde 0 = espacio libre, 1 = pared.
-        start: coordenada (fila, columna) de inicio.
-        goal: coordenada (fila, columna) objetivo.
-
-    Returns:
-        path: lista de coordenadas desde start hasta goal (vacía si no hay camino).
-        nodes_explored: número de nodos extraídos del frontier.
-    """
     rows, cols = len(grid), len(grid[0])
     visited = [[False] * cols for _ in range(rows)]
     parent: Dict[Tuple[int, int], Tuple[int, int]] = {}
     queue = deque([start])
     visited[start[0]][start[1]] = True
     nodes_explored = 0
-
-    # Movimientos en 4 direcciones: arriba, abajo, izquierda, derecha
     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
     while queue:
         current = queue.popleft()
         nodes_explored += 1
-
         if current == goal:
-            path = reconstruct_path(parent, start, goal)
-            return path, nodes_explored
-
+            return reconstruct_path(parent, start, goal), nodes_explored
         for dy, dx in directions:
             ny, nx = current[0] + dy, current[1] + dx
-            if (
-                0 <= ny < rows
-                and 0 <= nx < cols
-                and not visited[ny][nx]
-                and grid[ny][nx] == 0
-            ):
+            if 0 <= ny < rows and 0 <= nx < cols and not visited[ny][nx] and grid[ny][nx] == 0:
                 visited[ny][nx] = True
                 parent[(ny, nx)] = current
                 queue.append((ny, nx))
-
-    # Si no se encuentra camino
     return [], nodes_explored
 
 
@@ -58,47 +35,25 @@ def dfs(
     start: Tuple[int, int],
     goal: Tuple[int, int]
 ) -> Tuple[List[Tuple[int, int]], int]:
-    """
-    Depth-First Search en un grid binario (iterativo con pila).
-
-    Args:
-        grid: matriz 2D donde 0 = espacio libre, 1 = pared.
-        start: coordenada (fila, columna) de inicio.
-        goal: coordenada (fila, columna) objetivo.
-
-    Returns:
-        path: lista de coordenadas desde start hasta goal (vacía si no hay camino).
-        nodes_explored: número de nodos extraídos de la pila.
-    """
     rows, cols = len(grid), len(grid[0])
     visited = [[False] * cols for _ in range(rows)]
     parent: Dict[Tuple[int, int], Tuple[int, int]] = {}
     stack = [start]
     visited[start[0]][start[1]] = True
     nodes_explored = 0
-
     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
     while stack:
         current = stack.pop()
         nodes_explored += 1
-
         if current == goal:
-            path = reconstruct_path(parent, start, goal)
-            return path, nodes_explored
-
+            return reconstruct_path(parent, start, goal), nodes_explored
         for dy, dx in directions:
             ny, nx = current[0] + dy, current[1] + dx
-            if (
-                0 <= ny < rows
-                and 0 <= nx < cols
-                and not visited[ny][nx]
-                and grid[ny][nx] == 0
-            ):
+            if 0 <= ny < rows and 0 <= nx < cols and not visited[ny][nx] and grid[ny][nx] == 0:
                 visited[ny][nx] = True
                 parent[(ny, nx)] = current
                 stack.append((ny, nx))
-
     return [], nodes_explored
 
 
@@ -107,8 +62,36 @@ def uniform_cost_search(
     start: Tuple[int, int],
     goal: Tuple[int, int]
 ) -> Tuple[List[Tuple[int, int]], int]:
-    # Por implementar
-    pass
+    """
+    Uniform Cost Search (Dijkstra) en un grid donde cada paso cuesta 1.
+    """
+    rows, cols = len(grid), len(grid[0])
+    parent: Dict[Tuple[int, int], Tuple[int, int]] = {}
+    g_score: Dict[Tuple[int, int], int] = {start: 0}
+    visited = set()
+    # Min-heap de (costo acumulado, nodo)
+    heap = [(0, start)]
+    nodes_explored = 0
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+    while heap:
+        cost, current = heapq.heappop(heap)
+        if current in visited:
+            continue
+        visited.add(current)
+        nodes_explored += 1
+        if current == goal:
+            return reconstruct_path(parent, start, goal), nodes_explored
+        for dy, dx in directions:
+            ny, nx = current[0] + dy, current[1] + dx
+            neighbor = (ny, nx)
+            if 0 <= ny < rows and 0 <= nx < cols and grid[ny][nx] == 0:
+                new_cost = cost + 1
+                if neighbor not in g_score or new_cost < g_score[neighbor]:
+                    g_score[neighbor] = new_cost
+                    parent[neighbor] = current
+                    heapq.heappush(heap, (new_cost, neighbor))
+    return [], nodes_explored
 
 
 def astar(
@@ -117,7 +100,7 @@ def astar(
     goal: Tuple[int, int],
     heuristic: Callable[[Tuple[int, int], Tuple[int, int]], float]
 ) -> Tuple[List[Tuple[int, int]], int]:
-    # Por implementar
+    # Por implementar en el siguiente paso
     pass
 
 
@@ -126,9 +109,6 @@ def reconstruct_path(
     start: Tuple[int, int],
     goal: Tuple[int, int]
 ) -> List[Tuple[int, int]]:
-    """
-    Reconstruye el camino desde goal hasta start usando el diccionario parent.
-    """
     path: List[Tuple[int, int]] = []
     current = goal
     while current != start:
@@ -156,3 +136,7 @@ if __name__ == "__main__":
     path_dfs, exp_dfs = dfs(sample, s, e)
     print("DFS Path:", path_dfs)
     print("DFS Nodes explored:", exp_dfs)
+
+    path_ucs, exp_ucs = uniform_cost_search(sample, s, e)
+    print("UCS Path:", path_ucs)
+    print("UCS Nodes explored:", exp_ucs)
