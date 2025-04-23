@@ -62,14 +62,10 @@ def uniform_cost_search(
     start: Tuple[int, int],
     goal: Tuple[int, int]
 ) -> Tuple[List[Tuple[int, int]], int]:
-    """
-    Uniform Cost Search (Dijkstra) en un grid donde cada paso cuesta 1.
-    """
     rows, cols = len(grid), len(grid[0])
     parent: Dict[Tuple[int, int], Tuple[int, int]] = {}
     g_score: Dict[Tuple[int, int], int] = {start: 0}
     visited = set()
-    # Min-heap de (costo acumulado, nodo)
     heap = [(0, start)]
     nodes_explored = 0
     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
@@ -100,8 +96,36 @@ def astar(
     goal: Tuple[int, int],
     heuristic: Callable[[Tuple[int, int], Tuple[int, int]], float]
 ) -> Tuple[List[Tuple[int, int]], int]:
-    # Por implementar en el siguiente paso
-    pass
+    rows, cols = len(grid), len(grid[0])
+    open_heap: List[Tuple[float, Tuple[int, int]]] = []
+    g_score: Dict[Tuple[int, int], float] = {start: 0}
+    f_score: Dict[Tuple[int, int], float] = {start: heuristic(start, goal)}
+    parent: Dict[Tuple[int, int], Tuple[int, int]] = {}
+    visited = set()
+    nodes_explored = 0
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+    heapq.heappush(open_heap, (f_score[start], start))
+
+    while open_heap:
+        current_f, current = heapq.heappop(open_heap)
+        if current in visited:
+            continue
+        visited.add(current)
+        nodes_explored += 1
+        if current == goal:
+            return reconstruct_path(parent, start, goal), nodes_explored
+        for dy, dx in directions:
+            ny, nx = current[0] + dy, current[1] + dx
+            neighbor = (ny, nx)
+            if 0 <= ny < rows and 0 <= nx < cols and grid[ny][nx] == 0:
+                tentative_g = g_score[current] + 1
+                if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                    g_score[neighbor] = tentative_g
+                    f_score[neighbor] = tentative_g + heuristic(neighbor, goal)
+                    parent[neighbor] = current
+                    heapq.heappush(open_heap, (f_score[neighbor], neighbor))
+    return [], nodes_explored
 
 
 def reconstruct_path(
@@ -120,6 +144,9 @@ def reconstruct_path(
     path.reverse()
     return path
 
+
+def manhattan(a: Tuple[int, int], b: Tuple[int, int]) -> float:
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 if __name__ == "__main__":
     sample = [
@@ -140,3 +167,7 @@ if __name__ == "__main__":
     path_ucs, exp_ucs = uniform_cost_search(sample, s, e)
     print("UCS Path:", path_ucs)
     print("UCS Nodes explored:", exp_ucs)
+
+    path_astar, exp_astar = astar(sample, s, e, manhattan)
+    print("A* Path:", path_astar)
+    print("A* Nodes explored:", exp_astar)
